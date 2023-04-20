@@ -1,3 +1,4 @@
+import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
 import org.junit.Test;
@@ -22,7 +23,7 @@ public class CreateOrderParametrisationTest {
         this.expected = expected;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "Создание заказа: Тестовые данные: {0} {1}")
     public static Object[] getSumData() {
         return new Object[][] {
                 { "src/test/resources/order1.json", 201},
@@ -32,10 +33,8 @@ public class CreateOrderParametrisationTest {
         };
     }
 
-    //можно указать один из цветов — BLACK или GREY;
-    //можно указать оба цвета;
-    //можно совсем не указывать цвет
     @Test
+    @DisplayName("Создание заказа с вариациями цветов")
     public void checkStatusCode201() {
         RestAssured.baseURI = BASE_URI;
         File json = new File(colorList);
@@ -45,18 +44,6 @@ public class CreateOrderParametrisationTest {
                 .post(CREATE_ORDER_PATH)
                 .then();
         assertEquals(expected, response.extract().statusCode());
-    }
-
-    // тело ответа содержит track
-    @Test
-    public void checkCorrectBody() {
-        RestAssured.baseURI = BASE_URI;
-        File json = new File(colorList);
-        ValidatableResponse response = given()
-                .header("Content-type", "application/json")
-                .body(json)
-                .post(CREATE_ORDER_PATH)
-                .then();
         assertNotNull(response.extract().path("track"));
     }
 }

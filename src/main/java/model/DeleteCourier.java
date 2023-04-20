@@ -1,3 +1,5 @@
+package model;
+
 public class DeleteCourier {
     private String id;
 

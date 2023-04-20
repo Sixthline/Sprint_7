@@ -1,95 +1,61 @@
+import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.ValidatableResponse;
-import org.apache.http.HttpStatus;
+import model.CreateCourier;
+import model.DeleteCourier;
+import model.LoginCourier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import util.ClientCourier;
 
-import static io.restassured.RestAssured.given;
 import static org.junit.Assert.assertEquals;
 
 public class CreateCourierTest {
-    CreateCourier createCourier;
-    ClientCourier client;
-    LoginCourier loginCourier;
-    DeleteCourier deleteCourier;
+    private CreateCourier courier;
+    private CreateCourier courierWithoutPassword;
+    private ClientCourier client;
+    private LoginCourier loginCourier;
 
     // создаем нужные объекты перед тестами
     @Before
     public void setUp() {
-        createCourier = ClientCourier.randomCourier();
+        courier = ClientCourier.randomCourier();
+        courierWithoutPassword = new CreateCourier("login");
         client = new ClientCourier();
-        loginCourier = new LoginCourier(createCourier.getLogin(), createCourier.getPassword());
+        loginCourier = new LoginCourier(courier.getLogin(), courier.getPassword());
     }
 
     // удаляем созданного курьера после теста
     @After
     public void tearDown() {
-        ValidatableResponse response = client.login(loginCourier);
-        int num = response.extract().path("id");
-        deleteCourier = new DeleteCourier(num);
+        int num = client.login(loginCourier).extract().path("id");
+        DeleteCourier deleteCourier = new DeleteCourier(num);
         client.delete(deleteCourier);
     }
 
-    // курьера можно создать
     @Test
+    @DisplayName("Создание курьера")
     public void checkCreateCourier() {
-        ValidatableResponse response = client.create(createCourier);
-        assertEquals("Неверный статус код", HttpStatus.SC_CREATED, response.extract().statusCode());
-        assertEquals("успешный запрос не возвращает ok: true", true, response.extract().path("ok"));
+        ValidatableResponse response = client.create(courier);
+        assertEquals(201, response.extract().statusCode());
+        assertEquals(true, response.extract().path("ok"));
     }
 
-    // нельзя создать двух одинаковых курьеров
     @Test
-    public void checkCreatingTwoIdenticalCouriers() {
-        client.create(createCourier);
-        ValidatableResponse response = client.create(createCourier);
-        assertEquals(HttpStatus.SC_CONFLICT, response.extract().statusCode());
-    }
-
-    // чтобы создать курьера, нужно передать в ручку все обязательные поля
-    @Test
+    @DisplayName("Создание курьера без обязательного передаваемого поля")
     public void checkCreatingCouriersWithoutRequiredField() {
-        ValidatableResponse response1 = client.create(createCourier);
-        String json = "{\"login\": \"login\"}";
-        ValidatableResponse response2 = given()
-                .header("Content-type", "application/json")
-                .body(json).post(ClientCourier.CREATE_PATH)
-                .then();
-        assertEquals("Недостаточно данных для создания учетной записи", response2.extract().path("message"));
-    }
-
-    // проверяем что успешный запрос возвращает код ответа "201"
-    @Test
-    public void checkStatusCod201() {
-        ValidatableResponse response = client.create(createCourier);
-        assertEquals("Неверный статус код", HttpStatus.SC_CREATED, response.extract().statusCode());
-    }
-
-    // успешный запрос возвращает "ok: true"
-    @Test
-    public void checkCorrectResponse() {
-        ValidatableResponse response = client.create(createCourier);
-        assertEquals("успешный запрос не возвращает ok: true", true, response.extract().path("ok"));
-    }
-
-    // если одного из полей нет, запрос возвращает ошибку
-    @Test
-    public void checkCreatingCouriersWithoutRequiredFieldStatusCode400() {
-        client.create(createCourier);
-        String json = "{\"login\": \"login\"}";
-        ValidatableResponse response = given()
-                .header("Content-type", "application/json")
-                .body(json).post(ClientCourier.CREATE_PATH)
-                .then();
+        client.create(courier);
+        ValidatableResponse response = client.create(courierWithoutPassword);
         assertEquals(400, response.extract().statusCode());
+        assertEquals("Недостаточно данных для создания учетной записи", response.extract().path("message"));
     }
 
-    // если создать пользователя с логином, который уже есть, возвращается ошибка
     @Test
+    @DisplayName("Создание двух одинаковых курьеров")
     public void checkCreatingCouriersWithDuplicateLogin() {
-        client.create(createCourier);
-        ValidatableResponse response = client.create(createCourier);
-        assertEquals(HttpStatus.SC_CONFLICT, response.extract().statusCode());
+        client.create(courier);
+        ValidatableResponse response = client.create(courier);
+        assertEquals(409, response.extract().statusCode());
         assertEquals("Этот логин уже используется", response.extract().path("message"));
     }
 }

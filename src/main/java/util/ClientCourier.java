@@ -1,5 +1,11 @@
+package util;
+
+import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
+import model.CreateCourier;
+import model.DeleteCourier;
+import model.LoginCourier;
 
 import java.util.Random;
 
@@ -32,6 +38,7 @@ public class ClientCourier {
                 .setFirstName(randomString(7));
     }
 
+    @Step("Создание клиента")
     public ValidatableResponse create(CreateCourier courier) {
         return given()
                 .header("Content-type", "application/json")
@@ -40,6 +47,7 @@ public class ClientCourier {
                 .then();
     }
 
+    @Step("Логин клиента")
     public ValidatableResponse login(LoginCourier loginCourier) {
         return given()
                 .header("Content-type", "application/json")
@@ -48,6 +56,7 @@ public class ClientCourier {
                 .then();
     }
 
+    @Step("Удаление клиента")
     public ValidatableResponse delete(DeleteCourier deleteCourier) {
         return given()
                 .header("Content-type", "application/json")

@@ -1,65 +1,51 @@
+import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.ValidatableResponse;
+import model.CancelOrder;
+import model.CreateCourier;
+import model.DeleteCourier;
+import model.LoginCourier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-
-import static io.restassured.RestAssured.given;
+import util.ClientCourier;
+import util.ClientOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class GetOrderListTest {
-    CreateCourier createCourier;
-    ClientCourier client;
-    LoginCourier loginCourier;
-    DeleteCourier deleteCourier;
-    public static final String CREATE_ORDER_PATH = "/api/v1/orders";
+    private CreateCourier createCourier;
+    private ClientCourier clientCourier;
+    private ClientOrder clientOrder;
+    private LoginCourier loginCourier;
 
     @Before
     public void setUp() {
         createCourier = ClientCourier.randomCourier();
-        client = new ClientCourier();
+        clientCourier = new ClientCourier();
+        clientOrder = new ClientOrder();
         loginCourier = new LoginCourier(createCourier.getLogin(), createCourier.getPassword());
     }
 
     @After
     public void tearDown() {
-        ValidatableResponse response = client.login(loginCourier);
+        ValidatableResponse response = clientCourier.login(loginCourier);
         int num = response.extract().path("id");
-        deleteCourier = new DeleteCourier(num);
-        client.delete(deleteCourier);
+        DeleteCourier deleteCourier = new DeleteCourier(num);
+        clientCourier.delete(deleteCourier);
+        CancelOrder cancelOrder = new CancelOrder(clientOrder.createOrder().extract().path("track"));
+        clientOrder.cancelOrder(cancelOrder);
     }
 
     @Test
+    @DisplayName("Проверка что список заказов курьера не приходит пустой")
     public void checkOrderListNotNull() {
-        File json = new File("src/test/resources/order1.json");
-        ValidatableResponse response = client.create(createCourier);
-        assertEquals("Клиент не создан", 201, response.extract().statusCode());
-        assertEquals("не возвращает ok: true", true, response.extract().path("ok"));
-        ValidatableResponse response1 = client.login(loginCourier);
-        assertEquals(200, response1.extract().statusCode());
-        assertNotNull(response1.extract().path("id"));
-        int courierId = response1.extract().path("id");
-        ValidatableResponse response2 = given()
-                .header("Content-type", "application/json")
-                .body(json)
-                .post(CREATE_ORDER_PATH)
-                .then();
-        assertEquals(201, response2.extract().statusCode());
-        assertNotNull(response2.extract().path("track"));
-        int orderTrack = response2.extract().path("track");
-        ValidatableResponse response3 = given()
-                .header("Content-type", "application/json")
-                .get("/api/v1/orders/track?t=" + orderTrack)
-                .then();
-        assertEquals(200, response3.extract().statusCode());
-        assertNotNull(response3.extract().path("order.id"));
-        ValidatableResponse response4 = given()
-                .header("Content-type", "application/json")
-                .get("/api/v1/orders?courierId=" + courierId)
-                .then();
-        assertEquals(200, response4.extract().statusCode());
-        assertNotNull(response3.extract().path("order"));
+        clientCourier.create(createCourier);
+        int courierId = clientCourier.login(loginCourier).extract().path("id");
+        int orderTrack = clientOrder.createOrder().extract().path("track");
+        int orderId = clientOrder.getOrderByNumber(orderTrack).extract().path("order.id");
+        clientOrder.acceptOrder(orderId, courierId);
+        ValidatableResponse response = clientOrder.getCourierOrderList(courierId);
+        assertEquals(200, response.extract().statusCode());
+        assertNotNull(response.extract().path("orders"));
     }
 }
