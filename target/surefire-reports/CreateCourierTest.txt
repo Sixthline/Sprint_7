@@ -1,0 +1,8 @@
+-------------------------------------------------------------------------------
+Test set: CreateCourierTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 10.098 s <<< FAILURE! - in CreateCourierTest
+checkCreatingCouriersWithDuplicateLogin(CreateCourierTest)  Time elapsed: 0.737 s  <<< FAILURE!
+org.junit.ComparisonFailure: expected:<...гин уже используется[]> but was:<...гин уже используется[. Попробуйте другой.]>
+	at CreateCourierTest.checkCreatingCouriersWithDuplicateLogin(CreateCourierTest.java:59)
+
